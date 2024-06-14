@@ -10,7 +10,7 @@ def count_elements(arr: np.array) -> dict:
             retdict[a].append(i)
     return retdict
 
-def case_two(D: np.array, z: np.array) -> tuple[np.array]:
+def case_two(D: np.array, z: np.array, verbose: bool = False) -> tuple[np.array]:
     
     assert D.shape[0] == D.shape[1]
     assert D.shape[0] == z.shape[0]
@@ -23,7 +23,8 @@ def case_two(D: np.array, z: np.array) -> tuple[np.array]:
     for key, val in ce.items():
             
         if len(val) > 1:
-            print(f"Blok odpowiadający di={key} na indeksach {val}")
+            if verbose: 
+                print(f"Blok odpowiadający di={key} na indeksach {val}")
             
             i = val[0]
             k = len(val)
@@ -37,6 +38,7 @@ def case_two(D: np.array, z: np.array) -> tuple[np.array]:
                 for col in range(i, i+k):
                     H[row, col] = Hi[row-i, col-i]
         else:
-            print(f"Pojedyncze di={key} na indeksie {val}.")
+            if verbose:
+                print(f"Pojedyncze di={key} na indeksie {val}.")
     
-    return (H, z)
+    return H
