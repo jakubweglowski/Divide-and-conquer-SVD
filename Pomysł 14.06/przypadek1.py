@@ -9,7 +9,7 @@ def case_one(D: np.array, tildez: np.array) -> tuple[np.array]:
     assert D.shape[0] == tildez.shape[0]
     assert np.array_equal(D, np.diag(np.diag(D)))
 
-    eigendict = {}
+    # eigendict = {}
     
     N = D.shape[0]
     
@@ -18,25 +18,26 @@ def case_one(D: np.array, tildez: np.array) -> tuple[np.array]:
     perm = np.isclose(tildez, 0, atol=1e-15) # permutacja przestawiająca zera w "tildez" na początek
     nzeros = sum(perm) # liczba zer w "tildez"
     
-    for i in np.where(perm)[0]:
-        if eigendict.get(D[i, i]) is None:
-            eigendict[D[i, i]] = [np.hstack(([0]*i, 1, [0]*(N-i-1)))]
-        else:
-            eigendict[D[i, i]].append(np.hstack(([0]*i, 1, [0]*(N-i-1))))
+    # for i in np.where(perm)[0]:
+    #     if eigendict.get(D[i, i]) is None:
+    #         eigendict[D[i, i]] = [np.hstack(([0]*i, 1, [0]*(N-i-1)))]
+    #     else:
+    #         eigendict[D[i, i]].append(np.hstack(([0]*i, 1, [0]*(N-i-1))))
     
     # macierz permutacji, o której mowa w notatkach z wykładu:
     P = np.eye(N)
     P = np.vstack((P[perm], P[~perm]))
     
     PDPt = P @ D @ P.T
-    PAPt = P @ A @ P.T
+    # PAPt = P @ A @ P.T
     Pz = P @ tildez
     
-    Anew = PAPt[nzeros:, nzeros:]
+    # Anew = PAPt[nzeros:, nzeros:]
+    D1 = PDPt[:nzeros, :nzeros]
     Dnew = PDPt[nzeros:, nzeros:]
     znew = Pz[nzeros:]
     
-    assert np.all(np.isclose(Anew, Dnew + znew.reshape((N-nzeros, 1))@znew.reshape((1, N-nzeros))))
+    # assert np.all(np.isclose(Anew, Dnew + znew.reshape((N-nzeros, 1))@znew.reshape((1, N-nzeros))))
     
-    return (Dnew, znew, P, nzeros, eigendict)
+    return (D1, Dnew, znew, P)
 
