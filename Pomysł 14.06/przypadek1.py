@@ -9,12 +9,20 @@ def case_one(D: np.array, tildez: np.array) -> tuple[np.array]:
     assert D.shape[0] == tildez.shape[0]
     assert np.array_equal(D, np.diag(np.diag(D)))
 
+    eigendict = {}
+    
     N = D.shape[0]
     
     A = D + tildez.reshape((N, 1))@tildez.reshape((1, N))
 
-    nzeros = sum(np.isclose(tildez, 0, atol=1e-15)) # liczba zer w "tildez"
     perm = np.isclose(tildez, 0, atol=1e-15) # permutacja przestawiająca zera w "tildez" na początek
+    nzeros = sum(perm) # liczba zer w "tildez"
+    
+    for i in np.where(perm)[0]:
+        if eigendict.get(D[i, i]) is None:
+            eigendict[D[i, i]] = [np.hstack(([0]*i, 1, [0]*(N-i-1)))]
+        else:
+            eigendict[D[i, i]].append(np.hstack(([0]*i, 1, [0]*(N-i-1))))
     
     # macierz permutacji, o której mowa w notatkach z wykładu:
     P = np.eye(N)
@@ -30,5 +38,5 @@ def case_one(D: np.array, tildez: np.array) -> tuple[np.array]:
     
     assert np.all(np.isclose(Anew, Dnew + znew.reshape((N-nzeros, 1))@znew.reshape((1, N-nzeros))))
     
-    return (Dnew, znew, P, nzeros)
+    return (Dnew, znew, P, nzeros, eigendict)
 
