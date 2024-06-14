@@ -1,4 +1,7 @@
 import numpy as np
+from przypadek1 import *
+from przypadek2 import *
+from przypadek3 import *
 
 # Tworzenie macierzy dwudiagonalnej:
 
@@ -38,3 +41,27 @@ def DACSVD(B: np.array) -> tuple[np.array]:
     D = np.diag(np.hstack((0, S1, S2)))
 
     # 4: rozwiązanie pełnego zadania własnego macierzy D^2 + zz^T
+    N = D.shape[0]
+
+    A = D + z.reshape((N, 1)) @ z.reshape((1, N))
+    
+    H = case_two(D, z)
+    D1, Dnew, znew, P = case_one(D, H @ z)
+    S, Q = case_three(Dnew, znew)
+    
+    nzeros = D1.shape[0]
+    Nnew = Dnew.shape[0]
+
+    U = np.block([
+        [np.eye(nzeros), np.zeros((nzeros, Nnew))],
+        [np.zeros((Nnew, nzeros)), Q]
+    ])
+
+    Sigma = np.block([
+        [D1, np.zeros((nzeros, Nnew))],
+        [np.zeros((Nnew, nzeros)), S]
+    ])
+    
+    Ubar = H.T @ P.T @ U
+    
+    assert np.all(np.isclose(A, Ubar @ Sigma @ np.linalg.inv(Ubar)))
