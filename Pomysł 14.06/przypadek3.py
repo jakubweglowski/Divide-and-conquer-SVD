@@ -4,7 +4,7 @@ from scipy.optimize import bisect
 
 def f(x: float, z: np.array, d: np.array) -> float:
     assert z.shape[0] == d.shape[0]
-    return 1 + np.sum(z*z / (d - x))
+    return 1 + np.sum(z**2 / (d - x))
 
 def case_three(Dnew: np.array, znew: np.array) -> tuple[np.array]:
     
@@ -18,8 +18,10 @@ def case_three(Dnew: np.array, znew: np.array) -> tuple[np.array]:
     # wyznaczamy wartości własne
     eigenvalues = []
     for i in range(Nnew-1):    
-        eigenvalues.append(bisect(f, d[i]+(1e-15), d[i+1]-(1e-15), args=(znew, d)))
-    eigenvalues.append(bisect(f, d[-1]+(1e-15), d[-1] + np.linalg.norm(znew)**2, args=(znew, d)))
+        eigenvalues.append(bisect(f, d[i]+(1e-14), d[i+1]-(1e-14), args=(znew, d)))
+        
+    print(f"f(a) = {f(d[-1]+(1e-14), znew, d)}\nf(b) = {f(d[-1]+norm(znew)**2, znew, d)}")
+    eigenvalues.append(bisect(f, d[-1]+(1e-14), d[-1] + norm(znew)**2, args=(znew, d)))
     
     # wyznaczamy wektory własne
     eigenvectors = []
