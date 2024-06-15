@@ -1,7 +1,7 @@
 import numpy as np
 
 def divideB(B: np.array) -> tuple[np.array]:
-    m = B.shape[0]//2 # kolumna podziału
+    m = B.shape[0]//2 # wiersz podziału
     
     # print(f"{B.shape=}\n{B=}")
     qm = B[m, m]

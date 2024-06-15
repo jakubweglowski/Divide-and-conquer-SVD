@@ -14,18 +14,19 @@ def case_three(Dnew: np.array, znew: np.array) -> tuple[np.array]:
     
     Nnew = Dnew.shape[0]
     d = np.diag(Dnew)
-
+    
     # wyznaczamy wartości własne
     eigenvalues = []
     for i in range(Nnew-1):    
         eigenvalues.append(bisect(f, d[i]+(1e-15), d[i+1]-(1e-15), args=(znew, d)))
-    eigenvalues.append(bisect(f, d[-1]+(1e-15), d[-1] + np.linalg.norm(znew)**2, args=(znew, d)))
+        
+    eigenvalues.append(bisect(f, d[-1]+(1e-15), d[-1] + norm(znew)**2, args=(znew, d)))
     
     # wyznaczamy wektory własne
     eigenvectors = []
     for λ in eigenvalues:
         v = solve(Dnew-λ*np.eye(Nnew), znew)
-        eigenvectors.append(v)
+        eigenvectors.append(v/norm(v))
     
     # składamy macierze
     S = np.diag(eigenvalues)
