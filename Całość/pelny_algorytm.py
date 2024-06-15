@@ -34,28 +34,31 @@ def DACSVD(B: np.array) -> tuple[np.array]:
     U1, S1, V1T = DACSVD(B1)
     U2, S2, V2T = DACSVD(B2)
     
-    # 3: obliczenie "z" oraz "D"
+    # 3: obliczenie "Pm", "z", "D"
     l1 = V1T[:-1, -1]
     nu = V1T[-1, -1]
     f2 = V2T[:, 0]
     
-    z = np.hstack((nu, qm*l1, rm*f2))
-    D = np.diag(np.hstack((0, S1, S2)))
-
-    # 4: rozwiązanie pełnego zadania własnego macierzy M^T * M = D^2 + z * z^T
-    M = np.copy(D)
-    M[0, :] = z
+    N = 1 + len(S1) + len(S2)
+    Pm = np.eye(N)
+    Pm[[0, m], :] = Pm[[m, 0], :]
     
-    N = D.shape[0]
+    C = np.block([[np.diag(S1), np.zeros((S1.shape[0], 1)), np.zeros((S1.shape[0], S2.shape[0]))],
+                  [qm*l1, qm*nu, rm*f2],
+                  [np.zeros((S2.shape[0], S1.shape[0])), np.zeros((S2.shape[0], 1)), np.diag(S2)]])
+    
+    M = Pm @ C @ Pm.T
+    
+    z = M[0, :]
+    D = np.diag(np.hstack((0, np.diag(M)[1:])))
+    
     D2 = np.copy(D)**2
     
-    # ### sortujemy diagonalę D^2 i wektor z
-    # Pd = np.eye(N)[np.argsort(np.diag(D2))]
-    # D2 = Pd @ D2 @ Pd.T
-    # z = Pd @ z
-    
+
+    # 4: rozwiązanie pełnego zadania własnego macierzy M^T * M = D^2 + z * z^T  
     H = case_two(D2, z)
     D1, Dnew, znew, P = case_one(D2, H @ z)
+    
     nzeros = D1.shape[0]
     Nnew = Dnew.shape[0]
     
@@ -65,9 +68,9 @@ def DACSVD(B: np.array) -> tuple[np.array]:
     znew = Pd @ znew
     S, Q = case_three(Dnew, znew)
     
-    print("Krok 3...", end=" ")
+    # print("Krok 3...", end=" ")
     assert np.allclose(Dnew + znew.reshape((Nnew, 1)) @ znew.reshape((1, Nnew)), Q @ S @ np.linalg.inv(Q))
-    print("Ok!")
+    # print("Ok!")
 
     U = np.block([
         [np.eye(nzeros), np.zeros((nzeros, Nnew))],
@@ -83,23 +86,20 @@ def DACSVD(B: np.array) -> tuple[np.array]:
     # kolumny Ubar to wektory własne M^T * M
     Ubar = H.T @ P.T @ U
     
-    # w tym momencie mamy poprawny rozkład M^T * M = Ubar * Sigma * Ubar^(-1)
+    # w tym momencie mamy poprawny rozkład M^T * M = Ubar * Sigma * Ubar^(-1):
+    # print("Sprawdzamy rozkład M^T * M = Ubar * Sigma * Ubar^(-1)...", end=" ")
+    assert np.allclose(M.T @ M, Ubar @ Sigma @ np.linalg.inv(Ubar))
+    # print("Ok!")
     # kolumny Ubar = wektory własne M^T * M
     # diagonala Sigma = wartości własne M^T * M
-    print("Sprawdzamy rozkład M^T * M = Ubar * Sigma * Ubar^(-1)...", end=" ")
-    assert np.allclose(M.T @ M, Ubar @ Sigma @ np.linalg.inv(Ubar))
-    print("Ok!")
-    
-    Pm = np.eye(N)
-    Pm[[0, m], :] = Pm[[m, 0], :]
-    
+      
     Lambda = np.sqrt(Sigma)
     Y = Ubar
     
     X = M @ Y @ (np.diag(1/np.diag(Lambda)))
 
-    print(f"{U1=}\n{U2=}\n")
-    print(f"{V1T=}\n{V2T=}\n")
+    # print(f"{U1=}\n{U2=}\n")
+    # print(f"{V1T=}\n{V2T=}\n")
     U = np.block([[U1, np.zeros((U1.shape[0], 1)), np.zeros((U1.shape[0], U2.shape[1]))],
                   [np.zeros((1, U1.shape[1])), 1, np.zeros((1, U2.shape[1]))],
                   [np.zeros((U2.shape[0], U1.shape[1])), np.zeros((U2.shape[0], 1)), U2]]) @ Pm.T @ X
@@ -113,7 +113,6 @@ def DACSVD(B: np.array) -> tuple[np.array]:
 ##############################################
 if __name__ == "__main__":
     # Tworzenie macierzy dwudiagonalnej:
-
     np.random.seed(0)
     K = 5
     q = np.random.rand(K) # główna diagonala
