@@ -13,9 +13,9 @@ def case_one(D: np.array, tildez: np.array) -> tuple[np.array]:
     
     N = D.shape[0]
     
-    A = D + tildez.reshape((N, 1))@tildez.reshape((1, N))
+    # A = D + tildez.reshape((N, 1))@tildez.reshape((1, N))
 
-    perm = np.isclose(tildez, 0, atol=1e-15) # permutacja przestawiająca zera w "tildez" na początek
+    perm = np.isclose(tildez, 0, atol=1e-14) # permutacja przestawiająca zera w "tildez" na początek
     nzeros = sum(perm) # liczba zer w "tildez"
     
     # for i in np.where(perm)[0]:

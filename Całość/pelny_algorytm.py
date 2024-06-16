@@ -14,25 +14,57 @@ reload(przypadek3)
 import podziałB
 reload(podziałB)
 
+import bidiagonalizacja
+reload(bidiagonalizacja)
+
 from przypadek1 import *
 from przypadek2 import *
 from przypadek3 import *
 from podziałB import *
+from bidiagonalizacja import *
+
+##############################################################
+def enforce_zeros(A: np.array) -> np.array:
+    A[np.where(np.abs(A) < 1e-15)] = 0
+    return A
 
 ##############################################################
 # WŁAŚCIWY ALGORYTM:
 
-def DACSVD(B: np.array) -> tuple[np.array]:
+def DACSVD(A: np.array) -> tuple[np.array]:
     
-    if B.shape[0] <= 2:
+    U0, B, V0T, transposed = bidiagonalize(A)
+    Mb, Nb = B.shape
+    
+    if transposed:
+        print(f"Macierz A ma więcej kolumn niż wierszy.\nObliczamy SVD macierzy transponowanej.")
+    
+    B = enforce_zeros(B)
+    
+    Q, S, WT = DACSVD_bidiagonal(B[:Nb, :Nb])
+    
+    Mq, Nq = Q.shape
+    Qfull = np.block([[Q, np.zeros((Mq, Mb-Nb))],
+                      [np.zeros((Mb-Nb, Nq)), np.eye(Mb-Nb)]])
+    Sfull = np.vstack((np.diag(S), np.zeros((Mb-Nb, S.shape[0]))))
+    
+    if not transposed:
+        return U0 @ Qfull, Sfull, WT @ V0T
+    else:
+        return (V0T @ WT).T, Sfull, (Qfull @ U0).T
+    
+    
+def DACSVD_bidiagonal(B: np.array) -> tuple[np.array]:
+
+    if B.shape[0] <= 3:
         return np.linalg.svd(B)
     
     # 1: Znajdowanie podziału macierzy B na B1, B2
     B1, B2, qm, rm, m = divideB(B)
 
     # 2: rekurencja
-    U1, S1, V1T = DACSVD(B1)
-    U2, S2, V2T = DACSVD(B2)
+    U1, S1, V1T = DACSVD_bidiagonal(B1)
+    U2, S2, V2T = DACSVD_bidiagonal(B2)
     
     # 3: obliczenie "Pm", "z", "D"
     l1 = V1T[:-1, -1]
@@ -112,16 +144,22 @@ def DACSVD(B: np.array) -> tuple[np.array]:
 
 ##############################################
 if __name__ == "__main__":
-    # Tworzenie macierzy dwudiagonalnej:
-    np.random.seed(0)
-    K = 5
-    q = np.random.rand(K) # główna diagonala
-    r = np.random.rand(K-1) # naddiagonala
-    B1 = np.diag(q)
-    B2 = np.diag(r, k=1)
-    B = B1 + B2
+    M, N = 6, 6
     
-    print(f"Zanim wejdziemy do DACSVD:\n{B=}")
-    U, Lambda, VT = DACSVD(B)
-    print(f"{Lambda=}")
-    print(f"{B=}\n{U @ np.diag(Lambda) @ VT=})")
+    print("Generujemy macierz A...")
+    np.random.seed(0)
+    A = np.random.rand(M, N)
+    
+    print("Robimy DACSVD...")
+    U, S, VT = DACSVD(A)
+    
+    print("Upewniamy się, czy A = U*S*VT...", end=" ")
+    assert np.allclose(A, U @ S @ VT)
+    print("Tak!\n")
+    
+    print("Teraz robimy SVD z np.linalg i porównujemy:")
+    trueSVD = np.linalg.svd(A)
+    
+    print(f"U=\n{U}\nU_linalg=\n{trueSVD[0]}\n")
+    print(f"S=\n{np.diag(S)}\nS_linalg=\n{trueSVD[1]}\n")
+    print(f"VT=\n{VT}\nVT_linalg=\n{trueSVD[2]}\n")
