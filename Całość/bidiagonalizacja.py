@@ -4,13 +4,13 @@ from numpy.linalg import norm
 def bidiagonalize(A: np.array) -> tuple[np.array]:
     
     B = np.copy(A)
-    M, N = B.shape
-    
     transposed = False
-    if M < N:
+    if B.shape[0] < B.shape[1]:
         transposed = True
         B = B.T
-        
+    
+    M, N = B.shape
+    
     U0T = np.eye(M)
     V0 = np.eye(N)
     
@@ -60,6 +60,9 @@ def bidiagonalize(A: np.array) -> tuple[np.array]:
         
         # B[i, (i+1):] = B[i, (i+1):] @ Hi
         
-    assert np.allclose(U0T.T @ B @ V0.T, A)
+    if not transposed:
+        assert np.allclose(U0T.T @ B @ V0.T, A)
+    else:
+        assert np.allclose(U0T.T @ B @ V0.T, A.T)
         
     return U0T.T, B, V0.T, transposed
