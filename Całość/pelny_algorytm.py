@@ -25,7 +25,7 @@ from bidiagonalizacja import *
 
 ##############################################################
 def enforce_zeros(A: np.array) -> np.array:
-    A[np.where(np.abs(A) < 1e-15)] = 0
+    A[np.where(np.abs(A) < 1e-14)] = 0
     return A
 
 ##############################################################
@@ -41,7 +41,7 @@ def DACSVD(A: np.array, verbose: bool = False) -> tuple[np.array]:
     
     B = enforce_zeros(B)
     
-    Q, S, WT = DACSVD_bidiagonal(B[:Nb, :Nb])
+    Q, S, WT = DACSVD_bidiagonal(B[:Nb, :Nb], verbose)
     
     Mq, Nq = Q.shape
     Qfull = np.block([[Q, np.zeros((Mq, Mb-Nb))],
@@ -96,10 +96,12 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     Pm[[0, m], :] = Pm[[m, 0], :]
     
     if verbose:
-        print("Konstrukcja macierzy C...")
+        print("Konstrukcja macierzy C...", end=" ")
     C = np.block([[np.diag(S1), np.zeros((S1.shape[0], 1)), np.zeros((S1.shape[0], S2.shape[0]))],
                     [qm*l1, qm*nu, rm*f2],
                     [np.zeros((S2.shape[0], S1.shape[0])), np.zeros((S2.shape[0], 1)), np.diag(S2)]])
+    if verbose:
+        print("Ok!")
         
     M = Pm @ C @ Pm.T
     
@@ -170,14 +172,14 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
 
 ##############################################
 if __name__ == "__main__":
-    M, N = 20, 6
+    M, N = 21, 6
     
     print("Generujemy macierz A...")
-    np.random.seed(0)
-    A = np.random.rand(M, N)
+    np.random.seed(1)
+    A = np.random.randn(M, N)
     
     print("Robimy DACSVD...")
-    U, S, VT = DACSVD(A)
+    U, S, VT = DACSVD(A, verbose=True)
     
     print("Upewniamy się, czy A = U*S*VT...", end=" ")
     assert np.allclose(A, U @ S @ VT)
