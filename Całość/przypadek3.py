@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.linalg import solve, norm
-from scipy.optimize import bisect
+from scipy.optimize import bisect, newton
 
 def f(x: float, z: np.array, d: np.array, verbose: bool = False) -> float:
     assert z.shape[0] == d.shape[0]
@@ -21,7 +21,8 @@ def case_three(Dnew: np.array, znew: np.array) -> tuple[np.array]:
     for i in range(Nnew-1):
         eigenvalues.append(bisect(f, d[i]+(1e-12), d[i+1]-(1e-12), args=(znew, d)))
 
-    eigenvalues.append(bisect(f, d[-1]+(1e-12), d[-1]+norm(znew)**2, args=(znew, d, True)))
+    # print(f"f(a)={f(d[-1]+1e-4, znew, d)}\nf(b)={f(d[-1]+norm(znew)**2, znew, d)}\n")
+    eigenvalues.append(bisect(f, d[-1]+1e-4, d[-1]+norm(znew)**2, args=(znew, d, True)))
     
     # wyznaczamy wektory własne
     eigenvectors = []

@@ -33,6 +33,11 @@ def enforce_zeros(A: np.array) -> np.array:
 
 def DACSVD(A: np.array, verbose: bool = False) -> tuple[np.array]:
     
+    square = False
+    if A.shape[0] == A.shape[1]:
+        square = True
+        A = np.vstack((A, np.zeros((1, A.shape[1]))))  
+        
     U0, B, V0T, transposed = bidiagonalize(A)
     Mb, Nb = B.shape
     
@@ -41,91 +46,100 @@ def DACSVD(A: np.array, verbose: bool = False) -> tuple[np.array]:
     
     B = enforce_zeros(B)
     
-    Q, S, WT = DACSVD_bidiagonal(B[:Nb, :Nb], verbose)
+    Q, S, WT = DACSVD_bidiagonal(B[:(Nb+1), :], verbose)
     
     Mq, Nq = Q.shape
-    Qfull = np.block([[Q, np.zeros((Mq, Mb-Nb))],
-                      [np.zeros((Mb-Nb, Nq)), np.eye(Mb-Nb)]])
+    Qfull = np.block([[Q, np.zeros((Mq, Mb-Nb-1))],
+                      [np.zeros((Mb-Nb-1, Nq)), np.eye(Mb-Nb-1)]])
     Sfull = np.vstack((np.diag(S), np.zeros((Mb-Nb, S.shape[0]))))
     
-    if not transposed:
-        return U0 @ Qfull, Sfull, WT @ V0T
+    if not transposed and not square:
+        U, S, VT = U0 @ Qfull, Sfull, WT @ V0T
+    elif not transposed and square:
+        U, S, VT = (U0 @ Qfull)[:-1, :-1], Sfull[:-1, :], WT @ V0T
     else:
-        return (WT @ V0T).T, Sfull.T, (U0 @ Qfull).T
+        U, S, VT = (WT @ V0T).T, Sfull.T, (U0 @ Qfull).T
+    
+    return U, S, VT
     
     
 def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
 
-    if B.shape[0] <= 3:
+    if B.shape[1] <= 2:
         return np.linalg.svd(B)
     
     # 1: Znajdowanie podziału macierzy B na B1, B2
-    B1, B2, qm, rm, m = divideB(B)
+    B1, B2, alphak, betak, k = divideB(B)
     
     if verbose:
         print(f"Macierz B=\n{B}\nzostała podzielona na:")
         print(f"B1=\n{B1}")
         print(f"B2=\n{B2}")
-        print(f"qm={qm}")
-        print(f"rm={rm}")
+        print(f"alphak={alphak}")
+        print(f"betak={betak}\n")
         
     # 2: rekurencja
-    U1, S1, V1T = DACSVD_bidiagonal(B1, verbose)
-    U2, S2, V2T = DACSVD_bidiagonal(B2, verbose)
-
-    # 3: obliczenie "Pm", "z", "D"
-    l1 = V1T[:-1, -1]
-    nu = V1T[-1, -1]
-    f2 = V2T[:, 0]
+    Q1full, D1, W1T = DACSVD_bidiagonal(B1, verbose)
+    Q1 = Q1full[:, :-1]
+    q1 = Q1full[:, -1]
+    lambda1 = q1[-1]
+    l1T = Q1[-1, :]
+    
+    Q2full, D2, W2T = DACSVD_bidiagonal(B2, verbose)
+    Q2 = Q2full[:, :-1]
+    q2 = Q2full[:, -1]
+    phi2 = q2[0]
+    f2T = Q2[0, :]
+    
+    r0 = np.sqrt((alphak*lambda1)**2 + (betak*phi2)**2)
+    c0 = alphak*lambda1/r0
+    s0 = betak*phi2/r0
     
     if verbose:
-        print(f"U1=\n{U1}")
-        print(f"S1=\n{S1}")
-        print(f"V1T=\n{V1T}")
-        print(f"l1=\n{l1}")
-        
-        print(f"U2=\n{U2}")
-        print(f"S2=\n{S2}")
-        print(f"V2T=\n{V2T}")
-        print(f"f2=\n{f2}")
-        print(f"nu={nu}")
-    
-    N = 1 + len(S1) + len(S2)
-    Pm = np.eye(N)
-    Pm[[0, m], :] = Pm[[m, 0], :]
-    
-    if verbose:
-        print("Konstrukcja macierzy C...", end=" ")
-    C = np.block([[np.diag(S1), np.zeros((S1.shape[0], 1)), np.zeros((S1.shape[0], S2.shape[0]))],
-                  [qm*l1, qm*nu, rm*f2],
-                  [np.zeros((S2.shape[0], S1.shape[0])), np.zeros((S2.shape[0], 1)), np.diag(S2)]])
+        print("Wyznaczamy Q...", end=" ")
+    Q = np.block([[c0*q1.reshape((len(q1), 1)), Q1, np.zeros((len(q1), Q2.shape[1]))],
+                  [s0*q2.reshape((len(q2), 1)), np.zeros((len(q2), Q1.shape[1])), Q2]])
+    q = np.hstack((-s0*q1, c0*q2))
+    Qfinal = np.hstack((Q, q.reshape((len(q), 1))))
     if verbose:
         print("Ok!")
         
-    M = Pm @ C @ Pm.T
-    
-    z = M[0, :]
-    D2 = np.diag(np.hstack((0, np.diag(M)[1:])))**2
+    if verbose:
+        print("Wyznaczamy M...", end=" ")
+    M = np.block([[r0, np.zeros((1, len(D1))), np.zeros((1, len(D2)))],
+                  [alphak*l1T.reshape((len(l1T), 1)), np.diag(D1), np.zeros((len(D1), len(D2)))],
+                  [betak*f2T.reshape((len(f2T), 1)), np.zeros((len(f2T), len(D1))), np.diag(D2)]])
+    if verbose:
+        print("Ok!")
+        
+    if verbose:
+        print("Wyznaczamy WT...", end=" ")
+    WT = np.block([[np.zeros((W1T.shape[1], 1)), W1T.T, np.zeros((W1T.shape[1], W2T.shape[0]))],
+                  [1, np.zeros((1, W1T.shape[0])), np.zeros((1, W2T.shape[0]))],
+                  [np.zeros((W2T.shape[1], 1)), np.zeros((W2T.shape[1], W1T.shape[0])), W2T.T]]).T
+    if verbose:
+        print("Ok!")
+
+    # 3: obliczenie "z", "D"
+    Mt = np.copy(M.T)
+    z = Mt[0, :]
+    D = np.diag(np.hstack((0, np.diag(Mt)[1:])))**2
     
 
-    # 4: rozwiązanie pełnego zadania własnego macierzy M^T * M = D^2 + z * z^T  
-    H = case_two(D2, z)
-    D1, Dnew, znew, P = case_one(D2, H @ z)
+    # 4: rozwiązanie pełnego zadania własnego macierzy M * M^T = D^2 + z * z^T
+    H = case_two(D, z)
+    D1, Dnew, znew, P = case_one(D, H @ z)
     
     nzeros = D1.shape[0]
     Nnew = Dnew.shape[0]
     
     ### sortujemy diagonalę Dnew i wektor znew
-    Pd = np.eye(N)[np.argsort(np.diag(Dnew))]
+    Pd = np.eye(Nnew)[np.argsort(np.diag(Dnew))]
     Dnew = Pd @ Dnew @ Pd.T
     znew = Pd @ znew
     S, Q = case_three(Dnew, znew)
     
-    if verbose:
-        print("Krok 3...", end=" ")
     assert np.allclose(Dnew + znew.reshape((Nnew, 1)) @ znew.reshape((1, Nnew)), Q @ S @ np.linalg.inv(Q))
-    if verbose:
-        print("Ok!")
 
     U = np.block([
         [np.eye(nzeros), np.zeros((nzeros, Nnew))],
@@ -138,47 +152,44 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
         [np.zeros((Nnew, nzeros)), S]
     ])
     
-    # kolumny Ubar to wektory własne M^T * M
-    Ubar = H.T @ P.T @ U
+    # kolumny U to wektory własne M * M^T
+    U = H.T @ P.T @ U
     
-    # w tym momencie mamy poprawny rozkład M^T * M = Ubar * Sigma * Ubar^(-1):
+    # w tym momencie mamy poprawny rozkład M * M^T = Ubar * Sigma * Ubar^(-1):
     if verbose:
-        print("Sprawdzamy rozkład M^T * M = Ubar * Sigma * Ubar^(-1)...", end=" ")
-    assert np.allclose(M.T @ M, Ubar @ Sigma @ np.linalg.inv(Ubar))
+        print("Sprawdzamy rozkład M * M^T = U * Sigma * U^(-1)...", end=" ")
+    assert np.allclose(M @ M.T, U @ Sigma @ np.linalg.inv(U))
     if verbose:
         print("Ok!")
-    # kolumny Ubar = wektory własne M^T * M
-    # diagonala Sigma = wartości własne M^T * M
-      
-    Lambda = np.sqrt(Sigma)
-    Y = Ubar
+    # kolumny U = wektory własne M * M^T
+    # diagonala Sigma = wartości własne M * M^T
     
-    X = M @ Y @ (np.diag(1/np.diag(Lambda)))
-
+    # Chcemy svd M = U * S * VT
+    S = np.sqrt(Sigma)
+    VT = np.diag(1/np.diag(S)) @ U.T @ M
+    
+    X = Qfinal @ np.block([[U, np.zeros((U.shape[0], 1))],
+                           [np.zeros((1, U.shape[1])), 1]])
+    
+    YT = VT @ WT
+    
     if verbose:
-        print(f"{U1=}\n{U2=}\n")
-        print(f"{V1T=}\n{V2T=}\n")
-        
-    U = np.block([[U1, np.zeros((U1.shape[0], 1)), np.zeros((U1.shape[0], U2.shape[1]))],
-                  [np.zeros((1, U1.shape[1])), 1, np.zeros((1, U2.shape[1]))],
-                  [np.zeros((U2.shape[0], U1.shape[1])), np.zeros((U2.shape[0], 1)), U2]]) @ Pm.T @ X
+        print("Ok!")
+        print(f"Zwracamy:\nX=\n{X}\nS=\n{np.diag(S)}\nYT=\n{YT}\n")
     
-    VT = Y.T @ Pm @ np.block([[V1T, np.zeros((V1T.shape[0], V2T.shape[1]))],
-                              [np.zeros((V2T.shape[0], V1T.shape[1])), V2T]])
-        
-    return U, np.diag(Lambda), VT
+    return X, np.diag(S), YT
 
 
 ##############################################
 if __name__ == "__main__":
-    M, N = 20, 10
+    M, N = 1000, 20
     
     print("Generujemy macierz A...")
     np.random.seed(1)
     A = np.random.randn(M, N)
     
     print("Robimy DACSVD...")
-    U, S, VT = DACSVD(A, verbose=True)
+    U, S, VT = DACSVD(A, verbose=False)
     
     print("Upewniamy się, czy A = U*S*VT...", end=" ")
     assert np.allclose(A, U @ S @ VT)

@@ -1,12 +1,11 @@
 import numpy as np
 
-def divideB(B: np.array) -> tuple[np.array]:
-    m = (B.shape[0]//2 - 1 if B.shape[0] == B.shape[1] else B.shape[0]//2) # wiersz podziału
+def divideB(B: np.array) -> tuple[np.array]:  
+    k = B.shape[1]//2 # kolumna podziału
     
-    # print(f"{B.shape=}\n{B=}")
-    qm = B[m, m]
-    rm = B[m, m+1]
-    B1 = B[:m, :(m+1)]
-    B2 = B[(m+1):, (m+1):]
+    alphak = B[k, k]
+    betak = B[k+1, k]
+    B1 = B[:(k+1), :k]
+    B2 = B[(k+1):, (k+1):]
     
-    return B1, B2, qm, rm, m
+    return B1, B2, alphak, betak, k
