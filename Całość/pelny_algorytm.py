@@ -56,7 +56,7 @@ def DACSVD(A: np.array, verbose: bool = False) -> tuple[np.array]:
     
 def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
 
-    if B.shape[0] <= 2:
+    if B.shape[0] <= 3:
         return np.linalg.svd(B)
     
     # 1: Znajdowanie podziału macierzy B na B1, B2
@@ -64,10 +64,10 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     
     if verbose:
         print(f"Macierz B=\n{B}\nzostała podzielona na:")
-        print(f"B1={B1}\n")
-        print(f"B2={B2}\n")
-        print(f"qm={qm}\n")
-        print(f"rm={rm}\n")
+        print(f"B1=\n{B1}")
+        print(f"B2=\n{B2}")
+        print(f"qm={qm}")
+        print(f"rm={rm}")
         
     # 2: rekurencja
     U1, S1, V1T = DACSVD_bidiagonal(B1, verbose)
@@ -79,17 +79,16 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     f2 = V2T[:, 0]
     
     if verbose:
-        print(f"U1=\n{U1}\n")
-        print(f"l1=\n{l1}")
+        print(f"U1=\n{U1}")
         print(f"S1=\n{S1}")
-        print(f"V1T=\n{V1T}\n")
+        print(f"V1T=\n{V1T}")
+        print(f"l1=\n{l1}")
         
-        print(f"U2=\n{U2}\n")
+        print(f"U2=\n{U2}")
         print(f"S2=\n{S2}")
-        print(f"V2T=\n{V2T}\n")
+        print(f"V2T=\n{V2T}")
         print(f"f2=\n{f2}")
-        
-        print(f"nu=\n{nu}")
+        print(f"nu={nu}")
     
     N = 1 + len(S1) + len(S2)
     Pm = np.eye(N)
@@ -98,8 +97,8 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     if verbose:
         print("Konstrukcja macierzy C...", end=" ")
     C = np.block([[np.diag(S1), np.zeros((S1.shape[0], 1)), np.zeros((S1.shape[0], S2.shape[0]))],
-                    [qm*l1, qm*nu, rm*f2],
-                    [np.zeros((S2.shape[0], S1.shape[0])), np.zeros((S2.shape[0], 1)), np.diag(S2)]])
+                  [qm*l1, qm*nu, rm*f2],
+                  [np.zeros((S2.shape[0], S1.shape[0])), np.zeros((S2.shape[0], 1)), np.diag(S2)]])
     if verbose:
         print("Ok!")
         
@@ -172,7 +171,7 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
 
 ##############################################
 if __name__ == "__main__":
-    M, N = 21, 6
+    M, N = 20, 10
     
     print("Generujemy macierz A...")
     np.random.seed(1)

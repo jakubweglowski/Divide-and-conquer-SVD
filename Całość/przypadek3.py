@@ -4,7 +4,7 @@ from scipy.optimize import bisect
 
 def f(x: float, z: np.array, d: np.array, verbose: bool = False) -> float:
     assert z.shape[0] == d.shape[0]
-    if verbose and np.any(np.isclose(d-x, 0, atol=1e-8)):
+    if verbose and np.any(np.isclose(d-x, 0, atol=1e-14)):
         print(f"Ostrzeżenie z funkcji 'f': możliwy błąd dzielenia przez 0...")
     return 1 + np.sum(z*z / (d - x))
 
@@ -19,9 +19,9 @@ def case_three(Dnew: np.array, znew: np.array) -> tuple[np.array]:
     # wyznaczamy wartości własne
     eigenvalues = []
     for i in range(Nnew-1):
-        eigenvalues.append(bisect(f, d[i]+(1e-15), d[i+1]-(1e-15), args=(znew, d)))
+        eigenvalues.append(bisect(f, d[i]+(1e-12), d[i+1]-(1e-12), args=(znew, d)))
 
-    eigenvalues.append(bisect(f, d[-1]+(1e-8), d[-1]+norm(znew)**2, args=(znew, d, True)))
+    eigenvalues.append(bisect(f, d[-1]+(1e-12), d[-1]+norm(znew)**2, args=(znew, d, True)))
     
     # wyznaczamy wektory własne
     eigenvectors = []
