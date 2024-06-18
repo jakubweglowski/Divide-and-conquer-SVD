@@ -136,7 +136,7 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     # 4: rozwiązanie pełnego zadania własnego macierzy M * M^T = D^2 + z * z^T
     H = case_two(D, z)
     D1, Dnew, znew, P = case_one(D, H @ z)
-    # D1 = enforce_zeros(D1)
+    D1 = enforce_zeros(D1)
 
     nzeros = D1.shape[0]
     Nnew = Dnew.shape[0]
@@ -166,9 +166,9 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
     ])
     
     # kolumny U to wektory własne M * M^T
-    U = H.T @ P.T @ U
+    U = enforce_zeros(H.T @ P.T @ U)
     
-    # w tym momencie mamy poprawny rozkład M * M^T = Ubar * Sigma * Ubar^(-1):
+    # w tym momencie mamy poprawny rozkład M * M^T = U * Sigma * U^(-1):
     # if verbose:
     #     print("Sprawdzamy rozkład M * M^T = U * Sigma * U^(-1)...", end=" ")
     # assert np.allclose(M @ M.T, U @ Sigma @ np.linalg.inv(U), atol=1e-1)
