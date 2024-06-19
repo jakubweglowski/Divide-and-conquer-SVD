@@ -191,7 +191,7 @@ def DACSVD_bidiagonal(B: np.array, verbose: bool = False) -> tuple[np.array]:
 
 ##############################################
 if __name__ == "__main__":
-    M, N = 1000, 300
+    M, N = 7, 4
     
     print("Generujemy macierz A...")
     A = np.random.rand(M, N)
@@ -208,6 +208,6 @@ if __name__ == "__main__":
     trueSVD = np.linalg.svd(A)
     
     # print(f"U=\n{U}\nU_linalg=\n{trueSVD[0]}\n")
-    # print(f"S=\n{S}\nS_linalg=\n{trueSVD[1]}\n")
+    print(f"S=\n{S}\nS_linalg=\n{trueSVD[1]}\n")
     print(f"l2-błąd procentowy na wartościach szczególnych: {100*np.linalg.norm(S - trueSVD[1])/np.linalg.norm(trueSVD[1]) :.4f}%")
     # print(f"VT=\n{VT}\nVT_linalg=\n{trueSVD[2]}\n")
